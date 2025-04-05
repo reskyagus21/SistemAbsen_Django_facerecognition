@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f7faff;
+        color: #1a1a1a;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        }
+
+        .container {
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin: 0 auto;
+        gap: 24px;
+        flex-grow: 1;
+        }
+
+        .left-section, .right-section {
+        background-color: #ffffff;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.1);
+        flex: 1 1 45%;
+        }
+
+        h1{
+        font-family: 'Roboto Mono', monospace;
+        color: #007bff;
+        font-size: 30px;        
+        }    
+
+        h2 {
+        font-family: 'Roboto Mono', monospace;
+        color: #007bff;
+        font-size: 22px;
+        margin-bottom: 20px;
+        }
+
+        #videoContainer {
+        position: relative;
+        background: #e3f2fd;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        }
+
+        video {
+        width: 100%;
+        height: auto;
+        display: block;
+        }
+
+        #faceOverlay {
+        position: absolute;
+        border: 2px dashed #007bff;
+        pointer-events: none;
+        border-radius: 8px;
+        }
+
+        #timer {
+        font-size: 15px;
+        color: #007bff;
+        background: #e3f2fd;
+        padding: 8px 18px;
+        border-radius: 50px;
+        font-family: 'Roboto Mono', monospace;
+        margin-top: 14px;
+        text-align: center;
+        display: inline-block;
+        }
+
+        #timer::after {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border: 2px solid #007bff;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-left: 8px;
+        }
+
+        @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+        }
+
+        a {
+        display: inline-block;
+        margin: 16px 10px 0 0;
+        text-decoration: none;
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+        transition: background 0.3s ease;
+        }
+
+        a:hover {
+        background: #0056b3;
+        }
+
+        table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #f9fafe;
+        border-radius: 10px;
+        overflow: hidden;
+        }
+
+        th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #d1e3f8;
+        }
+
+        th {
+        background: #e3f2fd;
+        color: #007bff;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        }
+
+        td {
+        font-size: 13px;
+        }
+
+        td img {
+        max-width: 60px;
+        border-radius: 6px;
+        transition: transform 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+
+        td img:hover {
+        transform: scale(1.1);
+        }
+
+        @media (max-width: 900px) {
+        .container {
+            flex-direction: column;
+        }
+        .left-section, .right-section {
+            flex: 1 1 100%;
+        }
+        }
+    </style>
+    </head>
+    <body>
+    <div class="container">
+        <div class="left-section">
+        <h1>ABSEN</h1>
+        <div id="videoContainer">
+            <video id="video" autoplay></video>
+            <div id="faceOverlay"></div>
+        </div>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <div id="timer">Detecting...</div><br>
+        <a href="{% url 'capture_page' %}">Tambah Data</a>
+        <a href="{% url 'attendance_list_page' %}">Daftar Absen</a>
+        </div>
+        <div class="right-section">
+        <h2>Absen Hari Ini</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Waktu</th>
+                <th>Gambar</th>
+            </tr>
+            </thead>
+            <tbody id="todayAttendanceList">
+            <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const faceOverlay = document.getElementById('faceOverlay');
+        const timerDisplay = document.getElementById('timer');
+        let detectionStartTime = null;
+        let isProcessing = false;
+        let detectionInterval = null;
+
+        startWebcam().catch(err => console.error('Error starting webcam:', err));
+        // Sesuaikan ukuran canvas dengan video
+        video.addEventListener('loadedmetadata', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        });
+
+        // Inisialisasi webcam
+        function stopWebcam() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                console.log('Webcam stopped!');
+            }
+        }
+
+        // Fungsi memulai webcam
+        function startWebcam() {
+            return navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    return video.play();
+                })
+                .then(() => console.log('Webcam started!'))
+                .catch(err => {
+                    Swal.fire('Error', 'Cannot access webcam: ' + err, 'error');
+                    throw err;
+                });
+        }
+        // Load model face-detection
+        async function loadModel() {
+            const model = await faceDetection.SupportedModels.MediaPipeFaceDetector;
+            const detectorConfig = {
+                runtime: 'tfjs',
+                maxFaces: 1
+            };
+            const detector = await faceDetection.createDetector(model, detectorConfig);
+            return detector;
+        }
+
+        // Fungsi deteksi dan absen otomatis
+        async function detectAndAttend() {
+            const detector = await loadModel();
+            const detectionInterval = setInterval(async () => {
+                if (isProcessing) return;
+
+                const faces = await detector.estimateFaces(video);
+                if (faces.length === 1) {
+                    const face = faces[0];
+                    const { xMin, yMin, width, height } = face.box;
+
+                    // Update overlay
+                    faceOverlay.style.display = 'block';
+                    faceOverlay.style.left = `${xMin}px`;
+                    faceOverlay.style.top = `${yMin}px`;
+                    faceOverlay.style.width = `${width}px`;
+                    faceOverlay.style.height = `${height}px`;
+
+                    if (!detectionStartTime) {
+                        detectionStartTime = Date.now();
+                    }
+
+                    const elapsed = (Date.now() - detectionStartTime) / 1000;
+                    timerDisplay.textContent = `Detected for ${elapsed.toFixed(1)}s`;
+
+                    if (elapsed >= 2) {
+                        isProcessing = true;
+                        clearInterval(detectionInterval);
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const frame = canvas.toDataURL('image/jpeg');
+
+                        const response = await fetch("{% url 'recognize_attend' %}", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ images: [frame] })
+                        });
+                        const result = await response.json();
+                        stopWebcam(); // Berhentikan kamera sebelum popup
+                        
+                        const swalPromise = result.status === 'success' ? 
+                            Swal.fire('Success', result.message, 'success') :
+                            Swal.fire('Error', result.message, 'error');
+
+                        swalPromise.then(() => {
+                            startWebcam()
+                                .then(() => detectAndAttend())
+                                .catch(err => console.error('Error restarting:', err));
+                                window.location.reload()
+                        });
+
+                        detectionStartTime = null;
+                        faceOverlay.style.display = 'none';
+                        timerDisplay.textContent = 'Detecting...';
+                        isProcessing = false;
+                        
+                    }
+                } else {
+                    detectionStartTime = null;
+                    faceOverlay.style.display = 'none';
+                    timerDisplay.textContent = 'Detecting...';
+                }
+            }, 100);
+        }
+
+        // Fungsi untuk memperbarui tabel absen harian
+        async function updateTodayAttendances() {
+            const response = await fetch("{% url 'today_attendances' %}");
+            const data = await response.json();
+            const tbody = document.getElementById('todayAttendanceList');
+            tbody.innerHTML = '';
+            data.attendances.forEach(att => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${att.nama}</td>
+                    <td>${new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td><img src="${att.gambar}" alt="${att.nama}"></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Muat data dan mulai deteksi saat halaman dibuka
+        window.addEventListener('load', () => {
+            detectAndAttend();
+            updateTodayAttendances();
+        });
+    </script>
+</body>
+</html>

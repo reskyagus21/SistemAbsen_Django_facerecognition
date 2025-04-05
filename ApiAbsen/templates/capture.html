@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tambah Data</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f0f6ff;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 123, 255, 0.1);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h2 {
+            font-family: 'Roboto Mono', monospace;
+            color: #0056b3;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        input {
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #d0e3ff;
+            background-color: #f8fbff;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        input::placeholder {
+            color: #aabecf;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+        }
+
+        #videoContainer {
+            position: relative;
+            margin: 0 auto 25px;
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #e3f2fd;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        video, canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #faceOverlay {
+            position: absolute;
+            border: 3px dashed #007bff;
+            border-radius: 10px;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        a button {
+            background: #28c2ff;
+        }
+
+        a button:hover {
+            background-color: #159ce1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>TAMBAH DATA WAJAH</h2>
+        <div id="videoContainer">
+            <video id="video" autoplay></video>
+            <div id="faceOverlay"></div>
+        </div>
+        <canvas id="canvas"></canvas>
+        
+        <div class="input-group">
+            <input type="text" id="nama" placeholder="Nama Lengkap">
+            <input type="text" id="alamat" placeholder="Alamat">
+            <input type="text" id="jabatan" placeholder="Jabatan">
+        </div>
+        
+        <div class="button-group">
+            <button id="captureButton">Capture Image</button>
+            <button id="trainButton">Training</button>
+            <a href="{% url 'absen_page' %}"><button>Absen</button></a>
+        </div>
+    </div>
+
+    <!-- Script tetap -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const faceOverlay = document.getElementById('faceOverlay');
+        let capturedImages = [];
+        const imageCount = 3;
+
+        canvas.width = 640;
+        canvas.height = 480;
+
+        navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } } 
+        })
+        .then(stream => {
+            video.srcObject = stream;
+            video.onloadedmetadata = () => { video.play(); };
+        })
+        .catch(err => {
+            Swal.fire('Error', 'Tidak dapat mengakses kamera: ' + err, 'error');
+            console.error("Camera error: ", err);
+        });
+
+        async function captureImage() {
+            if (capturedImages.length < imageCount) {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const image = canvas.toDataURL('image/jpeg');
+                capturedImages.push(image);
+                await Swal.fire({
+                    title: 'Foto Diambil',
+                    text: `Foto ${capturedImages.length} dari ${imageCount} berhasil diambil`,
+                    icon: 'success',
+                    confirmButtonText: 'Lanjut'
+                });
+                if (capturedImages.length === imageCount) saveFace();
+            }
+        }
+
+        async function saveFace() {
+            const nama = document.getElementById('nama').value;
+            const alamat = document.getElementById('alamat').value;
+            const jabatan = document.getElementById('jabatan').value;
+
+            if (!nama || !alamat || !jabatan || capturedImages.length < imageCount) {
+                Swal.fire('Error', 'Harap lengkapi semua field dan ambil 3 foto!', 'error');
+                window.location.reload();
+                return;
+            }
+
+            try {
+                const response = await fetch("{% url 'save_face' %}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nama, alamat, jabatan, images: capturedImages })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    await Swal.fire('Sukses', 'Data wajah berhasil disimpan!', 'success');
+                    capturedImages = [];
+                    document.getElementById('nama').value = '';
+                    document.getElementById('alamat').value = '';
+                    document.getElementById('jabatan').value = '';
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                    window.location.reload();
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Terjadi kesalahan saat menyimpan: ' + error, 'error');
+            }
+        }
+
+        async function trainFaces() {
+            const { value: confirm } = await Swal.fire({
+                title: 'Latih Wajah?',
+                text: 'Proses ini mungkin memakan waktu beberapa menit',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Latih Sekarang',
+                cancelButtonText: 'Batal'
+            });
+            
+            if (!confirm) return;
+            
+            try {
+                const response = await fetch("{% url 'train_faces' %}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    Swal.fire('Sukses', 'Pelatihan wajah selesai!', 'success');
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Terjadi kesalahan saat melatih: ' + error, 'error');
+            }
+        }
+
+        document.getElementById('captureButton').addEventListener('click', captureImage);
+        document.getElementById('trainButton').addEventListener('click', trainFaces);
+    </script>
+</body>
+</html>
