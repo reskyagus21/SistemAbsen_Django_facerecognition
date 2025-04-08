@@ -16,7 +16,7 @@ A face recognition-based attendance system built with Django and the `face_recog
 ## Installation
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/reskyagus21/AbsenDjango.git
+   git clone https://github.com/reskyagus21/SistemAbsen_Django_facerecognition.git
 
 ## How To use Attendance System
 1. Go to "Capture" to add a new member (fill in details and take a photo)
