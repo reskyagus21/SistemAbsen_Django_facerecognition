@@ -33,3 +33,14 @@ INFO:root:Trained: Resky Agus from /home/raccnt21/Documents/coconut/Absen/media/
 INFO:root:Trained: Resky Agus from /home/raccnt21/Documents/coconut/Absen/media/faces/Resky Agus/Resky Agus_2.jpg
 INFO:root:Recognized: Resky Agus, Distance: 0.3756605192657403
 WARNING:django.request:Not Found: /favicon.ico
+WARNING:django.request:Not Found: /favicon.ico
+INFO:root:Trained: Resky Agus from /home/raccnt21/Documents/coconut/Absen/media/faces/Resky Agus/Resky Agus_1.jpg
+INFO:root:Trained: Resky Agus from /home/raccnt21/Documents/coconut/Absen/media/faces/Resky Agus/Resky Agus_2.jpg
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_1.jpg
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_0.jpg
+INFO:root:Recognized: Muh. Dzikri Alfauzan Nuzul, Distance: 0.42701857500798474
+WARNING:django.request:Bad Request: /api/recognize-attend/
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_1.jpg
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_0.jpg
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_1.jpg
+INFO:root:Trained: Muh. Dzikri Alfauzan Nuzul from /home/raccnt21/Documents/coconut/Absen/media/faces/Muh. Dzikri Alfauzan Nuzul/Muh. Dzikri Alfauzan Nuzul_0.jpg
