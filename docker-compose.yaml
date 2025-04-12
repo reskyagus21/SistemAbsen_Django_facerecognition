@@ -31,8 +31,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=12345
       - MYSQL_DATABASE=absen
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=12345
+    
     ports:
       - "3000:3306"  # Map port host 3000 ke port MySQL default 3306 di container
     volumes:
@@ -43,7 +42,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 20
 
 volumes:
   media_volume:
