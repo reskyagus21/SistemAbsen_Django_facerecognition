@@ -6,4 +6,4 @@ numpy==1.26.4
 dlib==19.24.4
 opencv-python==4.9.0.80
 gunicorn==22.0.0  
-python==3.11.8
+mysqlclient

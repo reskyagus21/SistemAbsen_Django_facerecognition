@@ -135,7 +135,7 @@
 
         <div class="section" id="userSection">
             <h3 class="no-print">Data Anggota</h3>
-            <table>
+            <table id="personTable">
                 <thead class="no-print">
                     <tr>
                         <th>Nama</th>
@@ -153,8 +153,8 @@
                             <td>{{ person.alamat }}</td>
                             <td><img src="/media/{{ settings.MEDIA_URL }}{{ person.gambar_0 }}" alt="{{ person.nama }}"></td>
                             <td class="no-print">
-                                <button class="action-btn edit-btn">Edit</button>
-                                <button class="action-btn delete-btn">Hapus</button>
+                                <button class="action-btn edit-btn" onclick="editPerson('{{ person.id }}', '{{ person.nama }}', '{{ person.alamat }}', '{{ person.jabatan }}')">Edit</button>
+                                <button class="action-btn delete-btn" onclick="deletePerson('{{ person.id }}')">Hapus</button>
                             </td>
                         </tr>
                     {% empty %}
@@ -167,7 +167,7 @@
         <div class="section" id="attendanceSection">
             <h3>Data Absen</h3>
             <button class="print-btn no-print" onclick="window.print()"><i class="fas fa-print"></i> Print Data Absen</button>
-            <table>
+            <table id="attendanceTable">
                 <thead>
                     <tr>
                         <th>Nama</th>
@@ -183,7 +183,7 @@
                             <td>{{ attendance.waktu|date:"Y-m-d H:i" }}</td>
                             <td><img src="{{ attendance.gambarKehadiran.url }}" alt="{{ attendance.namaAnggota }}"></td>
                             <td class="no-print">
-                                <button class="action-btn delete-btn">Hapus</button>
+                                <button class="action-btn delete-btn" onclick="deleteAttendance('{{ attendance.id }}')">Hapus</button>
                             </td>
                         </tr>
                     {% empty %}
@@ -194,4 +194,139 @@
         </div>
     </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function deleteAttendance(attendanceId) {
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Apakah Anda yakin ingin menghapus data kehadiran ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff4444',
+                cancelButtonColor: '#00ff64',
+                confirmButtonText: 'Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch("{% url 'delete_attendance' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id: attendanceId })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            Swal.fire('Sukses', 'Data kehadiran berhasil dihapus!', 'success');
+                            document.querySelector(`#attendanceTable tr[data-id="${attendanceId}"]`).remove();
+                            if (!document.querySelector('#attendanceTable tbody tr')) {
+                                document.querySelector('#attendanceSection .scrollable').innerHTML = '<p>Belum ada data kehadiran.</p>';
+                            }
+                        } else {
+                            Swal.fire('Error', result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        Swal.fire('Error', 'Gagal menghapus data!', 'error');
+                    });
+                }
+            });
+        }
+
+        function deletePerson(personId) {
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: 'Apakah Anda yakin ingin menghapus data anggota ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff4444',
+                cancelButtonColor: '#00ff64',
+                confirmButtonText: 'Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch("{% url 'delete_person' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id: personId })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            Swal.fire('Sukses', 'Data anggota berhasil dihapus!', 'success');
+                            document.querySelector(`#personTable tr[data-id="${personId}"]`).remove();
+                            if (!document.querySelector('#personTable tbody tr')) {
+                                document.querySelector('#personSection .scrollable').innerHTML = '<p>Belum ada anggota terdaftar.</p>';
+                            }
+                        } else {
+                            Swal.fire('Error', result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        Swal.fire('Error', 'Gagal menghapus data!', 'error');
+                    });
+                }
+            });
+        }
+
+        function editPerson(personId, currentNama, currentAlamat, currentJabatan) {
+            Swal.fire({
+                title: 'Edit Data Anggota',
+                html: `
+                    <input id="swal-nama" class="swal2-input" value="${currentNama}" placeholder="Nama">
+                    <input id="swal-alamat" class="swal2-input" value="${currentAlamat}" placeholder="Alamat">
+                    <input id="swal-jabatan" class="swal2-input" value="${currentJabatan}" placeholder="Jabatan">
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#00ff64',
+                cancelButtonColor: '#ff4444',
+                preConfirm: () => {
+                    return {
+                        nama: document.getElementById('swal-nama').value,
+                        alamat: document.getElementById('swal-alamat').value,
+                        jabatan: document.getElementById('swal-jabatan').value
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const { nama, alamat, jabatan } = result.value;
+                    fetch("{% url 'edit_person' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id: personId, nama, alamat, jabatan })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            Swal.fire('Sukses', 'Data anggota berhasil diperbarui!', 'success');
+                            const row = document.querySelector(`#personTable tr[data-id="${personId}"]`);
+                            row.cells[0].textContent = nama;
+                            row.cells[1].textContent = jabatan;
+                            row.cells[2].textContent = alamat;
+                        } else {
+                            Swal.fire('Error', result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        Swal.fire('Error', 'Gagal memperbarui data!', 'error');
+                    });
+                }
+            });
+        }
+
+        function printAttendance() {
+            window.print();
+        }
+    </script>
 </html>
